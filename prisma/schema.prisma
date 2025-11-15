@@ -1,0 +1,213 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["ecommerce"]
+}
+
+/**
+ * ===========================
+ * ENUMS
+ * ===========================
+ */
+enum Role {
+  admin
+  customer
+
+  @@schema("ecommerce")
+}
+
+enum OrderStatus {
+  pending
+  paid
+  shipped
+  delivered
+  cancelled
+
+  @@schema("ecommerce")
+}
+
+enum PaymentMethod {
+  stripe
+  razorpay
+  paypal
+
+  @@schema("ecommerce")
+}
+
+enum PaymentStatus {
+  initiated
+  successful
+  failed
+  refunded
+
+  @@schema("ecommerce")
+}
+
+/**
+ * ===========================
+ * USER MODEL
+ * ===========================
+ */
+model User {
+  id            Int      @id @default(autoincrement())
+  name          String?  @db.VarChar(20)
+  email         String   @unique @db.VarChar(100)
+  password_hash String
+  role          Role     @default(customer)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @default(now())
+
+  carts    Cart[]
+  orders   Order[]
+  payments Payment[]
+
+  @@schema("ecommerce")
+}
+
+/**
+ * ===========================
+ * CATEGORY MODEL
+ * ===========================
+ */
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(20)
+  description String?
+  created_at  DateTime @default(now())
+
+  products Product[]
+
+  @@schema("ecommerce")
+}
+
+/**
+ * ===========================
+ * PRODUCT MODEL
+ * ===========================
+ */
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(150)
+  description String
+  price       Decimal  @db.Decimal(10, 2)
+  stock       Int      @default(0)
+  image_url   String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now())
+
+  categoryId Int?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@schema("ecommerce")
+}
+
+/**
+ * ===========================
+ * CART MODEL
+ * ===========================
+ */
+model Cart {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cartItems CartItem[]
+
+  @@schema("ecommerce")
+}
+
+/**
+ * ===========================
+ * CART ITEM MODEL
+ * ===========================
+ */
+model CartItem {
+  id        Int @id @default(autoincrement())
+  cartId    Int
+  productId Int
+  quantity  Int @db.Integer
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@schema("ecommerce")
+}
+
+/**
+ * ===========================
+ * ORDER MODEL
+ * ===========================
+ */
+model Order {
+  id               Int         @id @default(autoincrement())
+  userId           Int?
+  total_amount     Decimal     @db.Decimal(10, 2)
+  status           OrderStatus @default(pending)
+  shipping_address String?
+  created_at       DateTime    @default(now())
+  updated_at       DateTime    @default(now())
+
+  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  orderItems OrderItem[]
+  payments   Payment[]
+
+  @@schema("ecommerce")
+}
+
+/**
+ * ===========================
+ * ORDER ITEM MODEL
+ * ===========================
+ */
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  productId Int?
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)
+  subtotal  Decimal @db.Decimal(10, 2)
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@schema("ecommerce")
+}
+
+/**
+ * ===========================
+ * PAYMENT MODEL
+ * ===========================
+ */
+model Payment {
+  id             Int           @id @default(autoincrement())
+  orderId        Int
+  userId         Int?
+  payment_method PaymentMethod
+  amount         Decimal       @db.Decimal(10, 2)
+  status         PaymentStatus @default(initiated)
+  transactionId  String?       @unique
+  created_at     DateTime      @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@schema("ecommerce")
+}
