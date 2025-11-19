@@ -1,24 +1,28 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { authorize } from "@/utils/authorize";
-import { apiError, apiSuccess } from "@/lib/apiResponse";
+import { withErrorHandling } from "@/utils/withErrorHandling";
+import {
+  getAllProducts,
+  createProduct,
+} from "@/services/product.services";
+import {
+  createProductSchema,
+} from "@/lib/validation/product";
+import { apiSuccess } from "@/lib/apiResponse";
 
-// Admin-only: list all products
+// GET - List all products (admin only)
+// POST - Create new product (admin only)
+export const GET = withErrorHandling(async (req: NextRequest) => {
+  authorize(req, ["admin"]);
+  const products = await getAllProducts();
+  return apiSuccess(products);
+});
 
-export async function GET(req: NextRequest) {
-  try {
-    authorize(req, ["admin"]);
-    const products = await prisma.product.findMany({
-      select: {
-        id: true,
-        name: true,
-        price: true,
-        stock: true,
-        created_at: true,
-      },
-    });
-    return apiSuccess(products);
-  } catch (error) {
-    return apiError(error);
-  }
-}
+export const POST = withErrorHandling(async (req: NextRequest) => {
+  authorize(req, ["admin"]);
+  const body = await req.json();
+  const parsed = createProductSchema.parse(body);
+  const product = await createProduct(parsed);
+  return apiSuccess(product, 201);
+});
+

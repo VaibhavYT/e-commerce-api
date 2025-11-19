@@ -1,4 +1,4 @@
-import { loginSchema } from "@/lib/validation";
+import { loginSchema } from "@/lib/validation/auth";
 import { loginUser } from "@/services/auth.services";
 import { apiError, apiSuccess } from "@/lib/apiResponse";
 

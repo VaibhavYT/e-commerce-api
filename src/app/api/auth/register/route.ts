@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { registerSchema } from "@/lib/validation";
+import { registerSchema } from "@/lib/validation/auth";
 import { registerUser } from "@/services/auth.services";
 import { ApiError } from "@/utils/apiError";
 import { apiSuccess } from "@/lib/apiResponse";
