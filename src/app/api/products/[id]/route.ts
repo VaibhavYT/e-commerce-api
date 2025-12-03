@@ -1,6 +1,9 @@
 import { NextRequest } from "next/server";
 import { authorize } from "@/utils/authorize";
-import { withErrorHandlingAndParams } from "@/utils/withErrorHandling";
+import {
+  withErrorHandling,
+  withErrorHandlingAndParams,
+} from "@/utils/withErrorHandling";
 import {
   getProductById,
   updateProduct,
@@ -14,18 +17,16 @@ interface Context {
 }
 
 // GET - Get single product
-export const GET = withErrorHandlingAndParams(
-  async (req: NextRequest, context: Context) => {
-    const { id } = context.params;
-    // Parse + validate early
-    const productId = parseInt(id, 10);
-    if (isNaN(productId) || productId <= 0) {
-      throw ApiError.badRequest("Invalid product ID");
-    }
-    const product = await getProductById(productId);
-    return apiSuccess(product);
-  }
-);
+export const GET = withErrorHandling(async (req: NextRequest) => {
+  const { pathname } = req.nextUrl;
+  const parts = pathname.split("/");
+  const idStr = parts[parts.length - 1];
+  const id = Number(idStr);
+  if (!Number.isInteger(id)) throw ApiError.badRequest("Invalid product id");
+  const product = await getProductById(id);
+  return apiSuccess(product);
+});
+
 
 // PUT - Update product (admin only)
 export const PUT = withErrorHandlingAndParams(

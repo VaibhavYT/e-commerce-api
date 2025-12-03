@@ -4,7 +4,7 @@ import { verifyToken } from "@/utils/tokens";
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-
+   const method = req.method || "GET";
   // Define protected routes and roles
   const roleProtectedRoutes = [
     { path: "/api/admin", roles: ["admin"] },
@@ -27,7 +27,7 @@ export function proxy(req: NextRequest) {
       { status: 401 }
     );
   }
-
+    
   const token = authHeader.split(" ")[1];
   try {
     const decoded: any = verifyToken(token);
@@ -39,7 +39,10 @@ export function proxy(req: NextRequest) {
         { status: 403 }
       );
     }
-
+    // Allow public read access to products
+    if (pathname.startsWith("/api/products") && method === "GET") {
+      return NextResponse.next();
+    }
     // Role allowed → proceed
     return NextResponse.next();
   } catch {
